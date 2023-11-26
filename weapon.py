@@ -13,7 +13,6 @@ class Weapon(pygame.sprite.Sprite):
         full_path = f'graphics/weapons/{player.weapon}/{direction}.png'
         self.image = pygame.image.load(full_path).convert_alpha()
         
-        
         # Placement
         if direction == 'right':
             # If player is walking towards the right want to, place it on the rightside of the player and the weapon with leftside on player & Add an offset to the image

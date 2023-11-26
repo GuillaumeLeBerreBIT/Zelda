@@ -13,6 +13,7 @@ weapon_data = {
     'sai': {'cooldown': 80, 'damage': 10, 'graphic': '../graphics/weapons/sai/full.png'}
 }
 
+
 # This will be the layout for the game. 
 # P == Player
 # X == Rock/Obstacle

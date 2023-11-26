@@ -41,7 +41,6 @@ class Player(pygame.sprite.Sprite):
         self.weapon_switch_time = None   # Equivelant of the attack time
         self.switch_duration_cooldown = 200
               
-              
     def import_player_assets(self):
         # Path to folder containing all different animations
         character_path = 'graphics/player/'

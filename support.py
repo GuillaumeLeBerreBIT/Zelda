@@ -33,5 +33,4 @@ def import_folder(path):
             surface_list.append(image_surf)
     
     return surface_list # Need to return the list otherwise will not be able to get the objects
-
 #print(import_folder('graphics/grass')) # ('graphics/grass', [], ['grass_1.png', 'grass_2.png', 'grass_3.png']) > Folder path + List of folders + LIST OF IMAGES OF FILES INSIDE FOLDER

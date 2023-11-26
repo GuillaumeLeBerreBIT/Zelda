@@ -6,7 +6,7 @@ class Tile(pygame.sprite.Sprite):
     
     # Self, Pos: so know where to place, Groups: sprite group should be part of
     def __init__(self, pos, groups, sprite_type, surface = pygame.Surface((TILESIZE, TILESIZE))):
-        # To initiate Tile class ^^
+        # To initiate Tile class ^^^
         super().__init__(groups)
         # Always need for a Sprite!!
         self.sprite_type = sprite_type

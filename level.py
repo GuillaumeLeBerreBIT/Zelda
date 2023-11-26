@@ -116,7 +116,6 @@ class Level():
         self.visible_sprites.custom_draw(self.player) # Access player and get player position & Do not need any arguments due to display surface in class  #draw(self.display_surface) # Surface we want to draw on
         self.visible_sprites.update()
         
-
 # This sprite group is going to function as a CAMERA & The YSort == Sort the sprites by the Y coordinate and give them some overlap
 class YSortCameraGroup(pygame.sprite.Group):
     

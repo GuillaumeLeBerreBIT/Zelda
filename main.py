@@ -20,7 +20,6 @@ class Game:
         # Creating instance from level class
         self.level = Level()
         
-    
     # Run method
     def run(self):
         
