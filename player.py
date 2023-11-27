@@ -23,7 +23,7 @@ class Player(pygame.sprite.Sprite):
         
         # Movement 
         self.direction = pygame.math.Vector2()  # The vector that is going to have x and y by default (0,0) >> Move player
-        self.speed = 5 
+        #self.speed = 5 
         # Used as timer for attacking
         self.attacking = False
         self.attack_cooldown = 400
@@ -40,6 +40,13 @@ class Player(pygame.sprite.Sprite):
         self.can_switch_weapon = True   # Possible to switch the weapons
         self.weapon_switch_time = None   # Equivelant of the attack time
         self.switch_duration_cooldown = 200
+        
+        # Stats 
+        self.stats = {'health': 100, 'energy': 60, 'attack': 10, 'magic': 4, 'speed': 6}    # Base stats >> Use for creating the UI
+        self.health = self.stats['health']
+        self.energy = self.stats['energy']
+        self.exp = 123
+        self.speed = self.stats['speed']
               
     def import_player_assets(self):
         # Path to folder containing all different animations

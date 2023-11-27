@@ -8,6 +8,7 @@ from debug import debug
 from support import *
 from random import choice
 from weapon import Weapon
+from ui import UI
 
 # Can put sprite in different groups && Sprite can be in multiple groups at the same time
 # Depending on what group it is in, should be able to interact with its environments
@@ -38,7 +39,9 @@ class Level():
         
         # Sprite setup
         self.create_map()
-    
+
+        # User interface
+        self.ui = UI()
     
     def create_map(self):
         # To load in all the CSV files for the location of the objects to place
@@ -115,6 +118,8 @@ class Level():
         # Object from the YSortCameraGroup
         self.visible_sprites.custom_draw(self.player) # Access player and get player position & Do not need any arguments due to display surface in class  #draw(self.display_surface) # Surface we want to draw on
         self.visible_sprites.update()
+        # Get the information of the player to pass into the UI
+        self.ui.display(self.player)
         
 # This sprite group is going to function as a CAMERA & The YSort == Sort the sprites by the Y coordinate and give them some overlap
 class YSortCameraGroup(pygame.sprite.Group):
