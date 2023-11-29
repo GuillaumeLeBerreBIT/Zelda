@@ -11,6 +11,17 @@ class UI:
         # Bar setup             
         self.health_bar_rect = pygame.Rect(10, 10, HEALTH_BAR_WIDTH, BAR_HEIGHT)    # Need to the left position, top position, width and height of the bar
         self.energy_bar_rect = pygame.Rect(10, 34, ENERGY_BAR_WIDTH, BAR_HEIGHT)
+        
+        # Convert weapon dictionary
+        self.weapon_graphics = []
+        # Iterate over the values in the dictionary which is esantially another dictionary
+        for weapon in weapon_data.values(): 
+            # Only want the key for path to the weapon index
+            path = weapon['graphic']
+            # Convert to pygame image
+            weapon = pygame.image.load(path).convert_alpha()
+            # Append to the graphic path to the list of weapons 
+            self.weapon_graphics.append(weapon)
     
     def show_bar(self, current, max_amount, bg_rect, color):
         # Draw the background bar
@@ -35,10 +46,7 @@ class UI:
         x = self.display_surface.get_size()[0] - 20
         y = self.display_surface.get_size()[1] - 20
         # Use the coordinates to place the text onto the screen
-        text_rect = text_surf.get_rect(bottomright = (x, y))
-    
-    ### 3:31:51
-    
+        text_rect = text_surf.get_rect(bottomright = (x, y))    
     
         # Draw background behind the text make it more visible
         pygame.draw.rect(self.display_surface, UI_BG_COLOR, text_rect.inflate(20, 20))  # Can use the inflate function to increase the pixels of the background box
@@ -47,9 +55,38 @@ class UI:
         # Adding now a border to the background surface >> Change color and line
         pygame.draw.rect(self.display_surface, UI_BORDER_COLOR, text_rect.inflate(20, 20), 3)
     
+    def selection_box(self, left, top, has_switched):
+        # Create a rectangel of the  rectenagle using >> POS LEFT, POS TOP, WIDTH, HEIGHT
+        bg_rect = pygame.Rect(left, top, ITEM_BOX_SIZE, ITEM_BOX_SIZE)
+        # Create the background of the box which will be used to view the used weapon on
+        pygame.draw.rect(self.display_surface, UI_BG_COLOR , bg_rect)
+        if has_switched: 
+            # Create a frame around the box
+            pygame.draw.rect(self.display_surface, UI_BORDER_COLOR_ACTIVE , bg_rect, 3)
+        else:
+            # Create a frame around the box
+            pygame.draw.rect(self.display_surface, UI_BORDER_COLOR , bg_rect, 3) 
+            
+        # Give the background rectangle it
+        return bg_rect
+    
+    def weapon_overlay(self, weapon_index, has_switched):
+        # Draw the background to display the weapon on
+        bg_rect = self.selection_box(10, 630, has_switched)     # Weapon
+        # Select the image for the weapon based on the path of graphics
+        weapon_surf = self.weapon_graphics[weapon_index]
+        # Get the position of the background rectangle to place the weapon surface above >> Center Weapon on Center of BG
+        weapon_rect  = weapon_surf.get_rect(center = bg_rect.center )
+        # Want to place the surface of the rectangle inside the background box >> Need to return it in previous function
+        self.display_surface.blit(weapon_surf, weapon_rect)
+        
+        
     def display(self, player):
         
         self.show_bar(player.health, player.stats['health'], self.health_bar_rect, HEALTH_COLOR)
         self.show_bar(player.energy, player.stats['energy'], self.energy_bar_rect, ENERGY_COLOR)
         
         self.show_exp(player.exp)
+        
+        self.weapon_overlay(player.weapon_index, not player.can_switch_weapon)     # Weapon
+        #self.selection_box(80, 635)     # Magic
