@@ -101,11 +101,17 @@ class Level():
                             groups = [self.visible_sprites],           
                             obstacle_sprites = self.obstacle_sprites,
                             create_attack = self.create_attack,         # Not calling the function want to call it inside of the player
-                            destroy_attack = self.destroy_attack)       # Want to call the destroy attack here since place it in statementwhen attack is reset
+                            destroy_attack = self.destroy_attack,       # Want to call the destroy attack here since place it in statementwhen attack is reset
+                            create_magic = self.create_magic)
         
     def create_attack(self):
         self.current_attack = Weapon(self.player, 
                                      groups = [self.visible_sprites])
+    
+    def create_magic(self, style, strength, cost):
+        print(style)
+        print(strength)
+        print(cost)
     
     def destroy_attack(self):
         if self.current_attack: # If the self.current_attack exist then want to kill it

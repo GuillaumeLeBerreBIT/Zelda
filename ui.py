@@ -22,6 +22,18 @@ class UI:
             weapon = pygame.image.load(path).convert_alpha()
             # Append to the graphic path to the list of weapons 
             self.weapon_graphics.append(weapon)
+
+        # Convert weapon dictionary
+        self.magic_graphics = []
+        # Iterate over the values in the dictionary which is esantially another dictionary
+        for magic in magic_data.values(): 
+            # Only want the key for path to the weapon index
+            path = magic['graphic']
+            print(path)
+            # Convert to pygame image
+            magic = pygame.image.load(path).convert_alpha()
+            # Append to the graphic path to the list of weapons 
+            self.magic_graphics.append(magic)
     
     def show_bar(self, current, max_amount, bg_rect, color):
         # Draw the background bar
@@ -79,7 +91,16 @@ class UI:
         weapon_rect  = weapon_surf.get_rect(center = bg_rect.center )
         # Want to place the surface of the rectangle inside the background box >> Need to return it in previous function
         self.display_surface.blit(weapon_surf, weapon_rect)
+    
+    def magic_overlay(self, magic_index, has_switched):
+        # Drawing the background to draw the magic on
+        bg_rect_magic = self.selection_box(80, 635, has_switched)
+        # Create a surface of the graphic image
+        magic_surf = self.magic_graphics[magic_index]   # Already laoded the image previously >> Directly call from the list
+        # Create a rectangle of the surface >> Which has the same center of the background drawn
+        magic_rect = magic_surf.get_rect(center = bg_rect_magic.center)
         
+        self.display_surface.blit(magic_surf, magic_rect)
         
     def display(self, player):
         
@@ -88,5 +109,6 @@ class UI:
         
         self.show_exp(player.exp)
         
+        # By default is true but only want to box when it is not true since the logic is reversed in the function
         self.weapon_overlay(player.weapon_index, not player.can_switch_weapon)     # Weapon
-        #self.selection_box(80, 635)     # Magic
+        self.magic_overlay(player.magic_index, not player.can_switch_magic)     # Magic

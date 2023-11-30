@@ -6,7 +6,7 @@ from support import *
 class Player(pygame.sprite.Sprite):
     
     # Self, Pos: so know where to place, Groups: sprite group should be part of, Obstacle_sprites: To know where the obstacles are (Collisions)
-    def __init__(self, pos, groups, obstacle_sprites, create_attack, destroy_attack):
+    def __init__(self, pos, groups, obstacle_sprites, create_attack, destroy_attack, create_magic):
         # To initiate Tile class ^^
         super().__init__(groups)
         # Always need for a Sprite!!
@@ -40,6 +40,14 @@ class Player(pygame.sprite.Sprite):
         self.can_switch_weapon = True   # Possible to switch the weapons
         self.weapon_switch_time = None   # Equivelant of the attack time
         self.switch_duration_cooldown = 200
+        
+        # Magic
+        self.create_magic = create_magic
+        self.magic_index = 0 
+        #It will return the list for either fire or heal
+        self.magic = list(magic_data.keys())[self.magic_index] 
+        self.can_switch_magic = True    # Makes 
+        self.magic_switch_time = None
         
         # Stats 
         self.stats = {'health': 100, 'energy': 60, 'attack': 10, 'magic': 4, 'speed': 6}    # Base stats >> Use for creating the UI
@@ -98,9 +106,10 @@ class Player(pygame.sprite.Sprite):
                 
             # Magic input
             if keys_pressed[pygame.K_LCTRL]: # and not self.attacking:
-                self.attacking = True 
-                self.attack_time = pygame.time.get_ticks() # This is the starting time from upon calling an attack/magic
-                print('Magic')
+                style = list(magic_data.keys())[self.magic_index]   # Turn into a lsit so can index on it 
+                strength = list(magic_data.values())[self.magic_index]["strength"]  # This returns a list of the dictionaries under the key values, can index it and specify the value to get
+                cost = list(magic_data.values())[self.magic_index]["cost"]
+                self.create_magic(style, strength, cost)     # Here want to call the magic funtion
                 
             if keys_pressed[pygame.K_q] and self.can_switch_weapon:
                 self.can_switch_weapon = False  # Once the weapon switched set it ot false
@@ -112,6 +121,18 @@ class Player(pygame.sprite.Sprite):
                     self.weapon_index = 0
                     
                 self.weapon = list(weapon_data.keys())[self.weapon_index]   # Want to update the weapon list once the index is changed
+                
+                
+            if keys_pressed[pygame.K_e] and self.can_switch_magic:
+                self.can_switch_magic = False 
+                self.magic_switch_time = pygame.time.get_ticks() # This is the starting time from upon calling an attack/magic
+                # Keep increasing the weapon index of the weapon but once hit the max set it back to index zero
+                if self.magic_index < len(list(magic_data.keys())) - 1:
+                    self.magic_index += 1
+                else: 
+                    self.magic_index = 0
+                    
+                self.magic = list(magic_data.keys())[self.magic_index]   # Want to update the weapon list once the index is changed
         
     # Need the player direction + input >> Player status == Now from [1,0] player moving to the right and Attacking False that it is not attacking          
     def get_status(self):
@@ -191,7 +212,10 @@ class Player(pygame.sprite.Sprite):
         if not self.can_switch_weapon:  #If u can not switch the weapon 
             if current_time - self.weapon_switch_time >= self.switch_duration_cooldown: # Check current time - the time of weapon swithc and of bigger then can switch again
                 self.can_switch_weapon = True
-                
+        
+        if not self.can_switch_magic:  #If u can not switch the weapon 
+            if current_time - self.magic_switch_time >= self.switch_duration_cooldown: # Check current time - the time of weapon swithc and of bigger then can switch again
+                self.can_switch_magic = True
    
     def animate(self):
         # Use the status the get the correct key of images to represent
