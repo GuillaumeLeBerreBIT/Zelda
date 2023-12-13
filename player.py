@@ -1,13 +1,14 @@
 import pygame
 from settings import *
 from support import *
+from entity import *
 
 # This will be a sprite variable
-class Player(pygame.sprite.Sprite):
+class Player(Entity):
     
     # Self, Pos: so know where to place, Groups: sprite group should be part of, Obstacle_sprites: To know where the obstacles are (Collisions)
     def __init__(self, pos, groups, obstacle_sprites, create_attack, destroy_attack, create_magic):
-        # To initiate Tile class ^^
+    
         super().__init__(groups)
         # Always need for a Sprite!!
         self.image = pygame.image.load('graphics/test/player.png').convert_alpha()    # Will import player 
@@ -18,11 +19,11 @@ class Player(pygame.sprite.Sprite):
         self.import_player_assets()
         self.status = 'down'
         # To get the index of the image in the current status list of images
-        self.frame_index = 0
-        self.animation_speed = 0.15 # The speed to increase the index to get the correct image
+        #self.frame_index = 0
+        #self.animation_speed = 0.15 # The speed to increase the index to get the correct image
         
         # Movement 
-        self.direction = pygame.math.Vector2()  # The vector that is going to have x and y by default (0,0) >> Move player
+        #self.direction = pygame.math.Vector2()  # The vector that is going to have x and y by default (0,0) >> Move player
         #self.speed = 5 
         # Used as timer for attacking
         self.attacking = False
@@ -36,7 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.destroy_attack = destroy_attack
         self.weapon_index = 0       
         # Want to create a list from the keys of weapon_data  for sword, lance, ... which are selected based on the weapon index
-        self.weapon = list(weapon_data.keys())[self.weapon_index]   # e.g. sword
+        self.weapon = list(weapon_data.keys())[self.weapon_index]   # e.g. sword >> Name can be used to call for specific weapon values
         self.can_switch_weapon = True   # Possible to switch the weapons
         self.weapon_switch_time = None   # Equivelant of the attack time
         self.switch_duration_cooldown = 200
@@ -59,6 +60,7 @@ class Player(pygame.sprite.Sprite):
     def import_player_assets(self):
         # Path to folder containing all different animations
         character_path = 'graphics/player/'
+        # All kind of animation states of the player
         self.animations = {'up': [],'down': [], 'left': [], 'right': [],
                            'right_idle': [], 'left_idle': [], 'up_idle': [], 'down_idle': [],
                            'right_attack': [], 'left_attack': [], 'up_attack': [], 'down_attack': [],}
@@ -159,53 +161,17 @@ class Player(pygame.sprite.Sprite):
             if 'attack' in self.status: # Attack is in the string Need to remove it >>
                 self.status = self.status.replace('_attack', '') 
             
-    # Need an argument for SPEED!
-    def move(self,speed):
-        # Magnitude is the length of the vector
-        if self.direction.magnitude() != 0:                 # Checking if the vector has a length
-            self.direction = self.direction.normalize()     # Setting the length of vector to 1 (so does not matter which direction it moves)
-
-        # Split up the method into the x and y movement >> CHANGE THE RECT TO HITBOX HERE
-        self.hitbox.x += self.direction.x * speed
-        self.collision('horizontal')        # Checking any horizontal collisions
-        self.hitbox.y += self.direction.y * speed
-        self.collision('vertical')  # Checking any vertical collisions
-        self.rect.center = self.hitbox.center   # Set the center of the hitbox as center of the rectangle
-        
-        #self.rect.center += self.direction * speed
-        # Need to normalize how the player moves because diagonally moves faster!
-    
-    def collision(self,direction):  # Give the directions as arguments
-        
-        if direction == 'horizontal':   # Check the direction for collision
-            # Check for all the sprites for collisions
-            for sprite in self.obstacle_sprites:
-                # This will tell whether there will be a collisions between obstacle and the player
-                # CHECK THE HITBOX INSTEAD OF THE RECTANGLE
-                if sprite.hitbox.colliderect(self.hitbox):
-                    # We can predict there will always be a collision on e.g. right side if player is moving to right
-                    if self.direction.x > 0:    # Moving right
-                        self.hitbox.right = sprite.hitbox.left  # If player moving to right and colliding but overlapping >> Want to move right side of player to left side of the obstacle weve been colliding with so it looks player always on that side and is not overlapping
-
-                    if self.direction.x < 0: # Moving left
-                        self.hitbox.left = sprite.hitbox.right  # Place the left side of the player against the right side of the obstacle
-                    
-        if direction == 'vertical':
-            for sprite in self.obstacle_sprites:
-                
-                if sprite.hitbox.colliderect(self.hitbox):
-                    
-                    if self.direction.y < 0: # Moving up
-                        self.hitbox.top = sprite.hitbox.bottom  # Will place the top of the player under the bottom of the sprite
-                    if self.direction.y > 0: # Moving down
-                        self.hitbox.bottom = sprite.hitbox.top # Will place the bottom of the player at the top of the obstacle sprite
+    # Both functions moved to the Entity file >> super.__init__() can get acces to the functions
+    #def move(self,speed):
+    #def collision(self,direction):  # Give the directions as arguments
     
     def cooldowns(self):
         current_time = pygame.time.get_ticks()  # This will be run multiple times
         # Check for attack
         if self.attacking:
+            weapon_cooldown = weapon_data[self.weapon]['cooldown']
             # If the time of attack has passed more then 400 ticks then set to False so can attack again
-            if current_time - self.attack_time >= self.attack_cooldown:
+            if current_time - self.attack_time >= self.attack_cooldown + weapon_cooldown:
                 self.attacking = False
                 self.destroy_attack()   # Want to destroy the sprite once the attack animation is done
                 
@@ -230,7 +196,16 @@ class Player(pygame.sprite.Sprite):
         self.image = animation[int(self.frame_index)]
         # Different images of the player have different dimensions >> Need teo update the rectangle to have the correct pixels
         self.rect = self.image.get_rect(center = self.hitbox.center)
-            
+    
+    # Want to get the base attack + The damage of the current weapon it is using
+    def get_full_weapon_damage(self):
+        # Getting the base_damage
+        base_damage = self.stats['attack']
+        # Getting the weapon damage
+        weapon_damage = weapon_data[self.weapon]['damage']
+        
+        return base_damage + weapon_damage
+    
     def update(self):
         # Update the input keys each time
         self.input()

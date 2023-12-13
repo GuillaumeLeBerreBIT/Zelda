@@ -9,6 +9,7 @@ from support import *
 from random import choice
 from weapon import Weapon
 from ui import UI
+from enemy import Enemy
 
 # Can put sprite in different groups && Sprite can be in multiple groups at the same time
 # Depending on what group it is in, should be able to interact with its environments
@@ -36,6 +37,9 @@ class Level():
         
         # Attack sprites
         self.current_attack = None
+        self.attack_sprites = pygame.sprite.Group() # All enemies will be in this group
+        self.attackable_sprites = pygame.sprite.Group() # Going to spawn the weapons
+        # Want to check the collisions in these groups >> Check if hit anything
         
         # Sprite setup
         self.create_map()
@@ -48,7 +52,8 @@ class Level():
         layouts = {
             'boundary': import_csv_layout('map/map_FloorBlocks.csv'),
             'grass': import_csv_layout('map/map_Grass.csv'),
-            'object': import_csv_layout('map/map_Objects.csv')
+            'object': import_csv_layout('map/map_Objects.csv'),
+            'entities': import_csv_layout('map/map_Entities.csv')
         }
         # To load in all the graphical images 
         graphics = {
@@ -79,13 +84,32 @@ class Level():
                             # Take a random image from the list containing all grass images
                             random_grass_image = choice(graphics['grass'])
                             # Now here parce the surface image with the tile function >> To put the picture on the map & Adding to the obstacle sprites makes it so can not walk past it 
-                            Tile(pos = (x, y), groups = [self.visible_sprites, self.obstacle_sprites], sprite_type = 'grass', surface = random_grass_image)
+                            Tile(pos = (x, y), groups = [self.visible_sprites, self.obstacle_sprites, self.attackable_sprites], sprite_type = 'grass', surface = random_grass_image)
                         
                         if style == 'object':
                             # This will return a list from what we want the index
                             surf = graphics['object'][int(col)]  # WANT TO USE COLUMN GET FOR INDEXING >> TO GET THE CORRECT IMAGE
                             # Now here parce the surface image with the tile function >> To put the picture on the map & Adding to the obstacle sprites makes it so can not walk past it 
                             Tile(pos = (x, y), groups = [self.visible_sprites, self.obstacle_sprites], sprite_type = 'object', surface = surf)
+                            
+                        if style == 'entities':
+                            if col == '394':
+                                self.player = Player(pos = (x, y), 
+                                                groups = [self.visible_sprites],           
+                                                obstacle_sprites = self.obstacle_sprites,
+                                                create_attack = self.create_attack,         # Not calling the function want to call it inside of the player
+                                                destroy_attack = self.destroy_attack,       # Want to call the destroy attack here since place it in statementwhen attack is reset
+                                                create_magic = self.create_magic)
+                            else:
+                                if col == '390': monster_name = 'bamboo'
+                                elif col == '391': monster_name = 'spirit' 
+                                elif col == '392': monster_name = 'raccoon'
+                                else: monster_name = 'squid'
+                                
+                                Enemy(monster_name = monster_name, 
+                                        pos = (x,y), 
+                                        groups = [self.visible_sprites, self.attackable_sprites],
+                                        obstacle_sprites = self.obstacle_sprites)
             #    
             #    if col == 'x':
             #        Tile(pos = (x,y), groups = [self.visible_sprites, self.obstacle_sprites])   # Add to visible groups so can see them && 
@@ -97,16 +121,11 @@ class Level():
             #        self.player = Player(pos = (x,y), 
             #                             groups = [self.visible_sprites],           # Parsing the player inside this group
             #                             obstacle_sprites = self.obstacle_sprites)  # Then we give the player this group FOR THE COLLISIONS, Player is not inside this grou^p
-        self.player = Player(pos = (2000,1430), 
-                            groups = [self.visible_sprites],           
-                            obstacle_sprites = self.obstacle_sprites,
-                            create_attack = self.create_attack,         # Not calling the function want to call it inside of the player
-                            destroy_attack = self.destroy_attack,       # Want to call the destroy attack here since place it in statementwhen attack is reset
-                            create_magic = self.create_magic)
+        #self.player = Player(pos = (2000,1430), .....) >> MOVED INSIDE ENTITY BLOCK
         
     def create_attack(self):
         self.current_attack = Weapon(self.player, 
-                                     groups = [self.visible_sprites])
+                                     groups = [self.visible_sprites, self.attack_sprites])
     
     def create_magic(self, style, strength, cost):
         print(style)
@@ -117,13 +136,31 @@ class Level():
         if self.current_attack: # If the self.current_attack exist then want to kill it
             self.current_attack.kill()
         self.current_attack = None
+    
+    def player_attack_logic(self):
         
+        if self.attack_sprites:
+            for attack_sprite in self.attack_sprites: # Iterate over the list containing all the sprites in this group
+                collision_sprite = pygame.sprite.spritecollide(attack_sprite, self.attackable_sprites, False)   # Use a SPRITE to check if it collides with any sprite inside a group >> In this case not want to destroy the sprite
+
+                if collision_sprite: # If it exists
+                    # This will give the sprites that have been colliding with the weapon
+                    for target_sprite in collision_sprite:
+                        # Need to figure out the sprite type to do something with it
+                        if target_sprite.sprite_type == 'grass':
+                            target_sprite.kill()
+                        # For the enemies want to take the health and damage into account 
+                        else: 
+                            target_sprite.get_damge(self.player, attack_sprite.sprite_type)
+       
     def run(self):
         # Update and draw the game
         # Sprites want to draw from the group
         # Object from the YSortCameraGroup
         self.visible_sprites.custom_draw(self.player) # Access player and get player position & Do not need any arguments due to display surface in class  #draw(self.display_surface) # Surface we want to draw on
         self.visible_sprites.update()
+        self.visible_sprites.enemy_update(self.player)
+        self.player_attack_logic()
         # Get the information of the player to pass into the UI
         self.ui.display(self.player)
         
@@ -177,3 +214,11 @@ class YSortCameraGroup(pygame.sprite.Group):
         # When calling blit will still keep our sprite.image & now for sprite.rect going to add a vector to give a certain kind of offset
         # This vector is going to be our camera >> Going to give control where the sprites are going to be drawn 
         # Get the offset from the player and connect this to the sprite vector 
+        
+    def enemy_update(self,player):
+        # This will return a list for all the sprites that are either enemy or player
+        # First need to check if the sprite has the attribute (var) sprite_type and then checks if it is an enem attr
+        enemy_sprites = [sprite for sprite in self.sprites() if hasattr(sprite, 'sprite_type') and sprite.sprite_type == 'enemy']
+        
+        for enemy in enemy_sprites:
+            enemy.enemy_update(player)

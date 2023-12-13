@@ -5,6 +5,8 @@ class Weapon(pygame.sprite.Sprite):
     
     def __init__(self, player, groups):
         super().__init__(groups)
+        
+        self.sprite_type = 'weapon' # Now can use it to check collisions for specific weapons only
         # Want to get the direction either Up, Down, Left? Right and if Idle is present will be removed
         direction = player.status.split('_')[0]
         
