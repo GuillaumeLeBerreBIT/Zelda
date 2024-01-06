@@ -6,10 +6,13 @@ from tile import Tile
 from player import Player
 from debug import debug
 from support import *
-from random import choice
+from random import choice, randint
 from weapon import Weapon
 from ui import UI
 from enemy import Enemy
+from particles import AnimationPlayer
+from magic import MagicPlayer
+from upgrade import Upgrade
 
 # Can put sprite in different groups && Sprite can be in multiple groups at the same time
 # Depending on what group it is in, should be able to interact with its environments
@@ -30,7 +33,7 @@ class Level():
         
         # Draw all of game on 'self.screen'
         self.display_surface = pygame.display.get_surface() # Will get the display surface from anywhere in our code
-        
+        self.game_paused = False 
         # Sprite groups
         self.visible_sprites = YSortCameraGroup() # Change this sprite class to a custom made group
         self.obstacle_sprites = pygame.sprite.Group()       
@@ -46,6 +49,11 @@ class Level():
 
         # User interface
         self.ui = UI()
+        self.upgrade = Upgrade(self.player)
+        
+        # Particles
+        self.animation_player = AnimationPlayer()   # To run the particle effect 
+        self.magic_player = MagicPlayer(self.animation_player)
     
     def create_map(self):
         # To load in all the CSV files for the location of the objects to place
@@ -109,7 +117,10 @@ class Level():
                                 Enemy(monster_name = monster_name, 
                                         pos = (x,y), 
                                         groups = [self.visible_sprites, self.attackable_sprites],
-                                        obstacle_sprites = self.obstacle_sprites)
+                                        obstacle_sprites = self.obstacle_sprites,
+                                        damage_player = self.damage_player,
+                                        trigger_death_particles = self.trigger_death_particles,
+                                        add_exp = self.add_exp)
             #    
             #    if col == 'x':
             #        Tile(pos = (x,y), groups = [self.visible_sprites, self.obstacle_sprites])   # Add to visible groups so can see them && 
@@ -128,9 +139,14 @@ class Level():
                                      groups = [self.visible_sprites, self.attack_sprites])
     
     def create_magic(self, style, strength, cost):
-        print(style)
-        print(strength)
-        print(cost)
+        
+        if style == 'heal':
+            # Calling the heal method 
+            self.magic_player.heal(self.player, strength, cost, [self.visible_sprites]) # No collisions so do not need any of the attack sprites
+            
+        if style == 'flame':
+            self.magic_player.flame(self.player, cost, [self.visible_sprites, self.attack_sprites])
+        
     
     def destroy_attack(self):
         if self.current_attack: # If the self.current_attack exist then want to kill it
@@ -148,21 +164,58 @@ class Level():
                     for target_sprite in collision_sprite:
                         # Need to figure out the sprite type to do something with it
                         if target_sprite.sprite_type == 'grass':
+                            
+                            pos = target_sprite.rect.center # Will place the particles right on the center where the grass will be
+                            offset = pygame.math.Vector2(0,75)  # Lifting up the particle effect a tiny bit 
+                    
+                            # Spawn in multiple leafs >> Make it nicer 
+                            for leaf in range(randint(3,6)):
+                                self.animation_player.create_grass_particles(pos - offset, [self.visible_sprites])
+                            
                             target_sprite.kill()
                         # For the enemies want to take the health and damage into account 
                         else: 
                             target_sprite.get_damge(self.player, attack_sprite.sprite_type)
-       
+    
+    # Write a function that can damage the player
+    def damage_player(self, amount, attack_type):
+        
+        if self.player.vulnerable: # Create a timer after the player is hit so it cant attack the player multiple times in one attack
+            self.player.health -= amount
+            self.player.vulnerable = False
+            self.player.hurt_time = pygame.time.get_ticks()
+            # Spawn particles
+            # Get the slash, claw, thunder, leaf attack & Get the position of the player & 
+            self.animation_player.create_particles(attack_type, self.player.rect.center, [self.visible_sprites])
+            
+    def trigger_death_particles(self, pos, particle_type): 
+        
+        self.animation_player.create_particles(particle_type, pos, [self.visible_sprites])
+        
+    def add_exp(self, amount):
+        
+        self.player.exp += amount
+        
+    def toggle_menu(self):
+        
+        self.game_paused = not self.game_paused
+        
     def run(self):
-        # Update and draw the game
+        # ALWAYS DRAWING PAUSED OR UNPAUSED
         # Sprites want to draw from the group
         # Object from the YSortCameraGroup
         self.visible_sprites.custom_draw(self.player) # Access player and get player position & Do not need any arguments due to display surface in class  #draw(self.display_surface) # Surface we want to draw on
-        self.visible_sprites.update()
-        self.visible_sprites.enemy_update(self.player)
-        self.player_attack_logic()
         # Get the information of the player to pass into the UI
         self.ui.display(self.player)
+               
+        if self.game_paused:    # IF THE GAME IS PAUSED
+            self.upgrade.display() 
+        
+        else:           # IF THE GAME IS NOT PAUSED 
+            self.visible_sprites.update()
+            self.visible_sprites.enemy_update(self.player)
+            self.player_attack_logic()
+
         
 # This sprite group is going to function as a CAMERA & The YSort == Sort the sprites by the Y coordinate and give them some overlap
 class YSortCameraGroup(pygame.sprite.Group):

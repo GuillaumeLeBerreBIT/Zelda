@@ -6,7 +6,7 @@ from support import *
 
 class Enemy(Entity):    # Give the Entity class so do not need to rewrite 'move and 'collision
     
-    def __init__(self, monster_name, pos,  groups, obstacle_sprites):
+    def __init__(self, monster_name, pos,  groups, obstacle_sprites, damage_player, trigger_death_particles, add_exp):
         # General setup
         super().__init__(groups)
         # To use in IF statements to get the enemy from all sprite objects
@@ -35,12 +35,28 @@ class Enemy(Entity):    # Give the Entity class so do not need to rewrite 'move 
         self.resitance = monster_info['resistance']
         self.attack_radius = monster_info['attack_radius']
         self.notice_radius = monster_info['notice_radius']
-        self.attack_type = monster_info['attack_radius']
+        self.attack_type = monster_info['attack_type']
         
         # Player interaction
         self.can_attack  = True
         self.attack_time = None
         self.attack_cooldown_time =  400
+        self.damage_player = damage_player
+        self.trigger_death_particles = trigger_death_particles
+        self.add_exp = add_exp
+        
+        # Invinceability timer
+        self.vulnerable = True
+        self.hit_time = None
+        self.invincibility_duration = 300   # Can put this number in settings to have different enemy behaviours
+        
+        # Sounds 
+        self.death_sound = pygame.mixer.Sound('audio/death.wav')
+        self.hit_sound = pygame.mixer.Sound('audio/hit.wav')
+        self.attack_sound = pygame.mixer.Sound(monster_info['attack_sound'])
+        self.death_sound.set_volume(0.6)
+        self.hit_sound.set_volume(0.6)
+        self.attack_sound.set_volume(0.3)
                 
     def import_graphics(self, name):
         # All kind of animation states
@@ -90,6 +106,9 @@ class Enemy(Entity):    # Give the Entity class so do not need to rewrite 'move 
         if self.status == 'attack':
             # Get the time from when the attack has happend
             self.attack_time = pygame.time.get_ticks()
+            # Using the function parsed in the Player object
+            self.damage_player(self.attack_damage, self.attack_type)
+            self.attack_sound.play()
             
         elif self.status == 'move':   
             # Want the enemy move to the player once the player is getting closer
@@ -115,28 +134,69 @@ class Enemy(Entity):    # Give the Entity class so do not need to rewrite 'move 
         # Loading the rectangle in the center of the hitbox
         self.rect = self.image.get_rect(center = self.hitbox.center)    # MOVING HITBOX NOT RECTANGLE
         
+        # Want to make it flicker once being hit
+        if not self.vulnerable:
+            # Want to flicker
+            alpha = self.wave_value()
+            
+            self.image.set_alpha(alpha)
+        else:
+            self.image.set_alpha(255) # Transparency of the image = Full value
+        
     def cooldown(self):
+        # Get current time >> Make it everywhere availbale in this function
+        current_time = pygame.time.get_ticks()
+        
         # Only want to check the timer if this one is wrong
         if not self.can_attack:
-            # Get current time
-            current_time = pygame.time.get_ticks()
             
             if current_time - self.attack_time >= self.attack_cooldown_time:
                 self.can_attack = True
-    
+        
+        # Here set a timer for the invincibility and run when has been attacked by player
+        if not self.vulnerable:
+            # If the sum bigger then duration then set back to True to get hit
+            if current_time - self.hit_time >= self.invincibility_duration:
+                self.vulnerable = True
+            
+    # This will run on every cycle of our game >> Which will run 60 times a second on each collision == Multiply damage by 60
     def get_damge(self, player, attack_type):
         
-        if attack_type == 'weapon':
-            self.health -= player.get_full_weapon_damage()
-        else:
-            pass
-            # Magic damage
+        # Check to hit enemy once in a while
+        if self.vulnerable:  
+            self.hit_sound.play()
+            self.direction = self.get_player_distance_direction(player)[1] # Get the value number 1 which will give the direction
+            
+            if attack_type == 'weapon':
+                self.health -= player.get_full_weapon_damage()
+            else:
+                self.health -= player.get_full_magic_damage()
+            
+            self.hit_time = pygame.time.get_ticks() # Make it able to attack the enemies
+            self.vulnerable = False
         
+    def check_death(self):
+        
+        if self.health <= 0:
+            self.kill()
+            # Trigger the death animation 
+            self.trigger_death_particles(self.rect.center, self.monster_name)
+            self.add_exp(self.exp)   # Add the custom experience for each monster
+            self.death_sound.play()
+    
+    def hit_reaction(self):
+        
+        if not self.vulnerable:     # If the enemy is attacked
+            self.direction *= -self.resitance # Want to push back the enemy in the same direciton multiplied by the resistence 
+        
+    
     def update(self):
         
+        self.hit_reaction()
         self.move(self.speed)
         self.cooldown()
         self.animate()
+        self.check_death()
     
     def enemy_update(self, player):
         self.get_status(player = player)

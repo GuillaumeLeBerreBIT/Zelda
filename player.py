@@ -13,7 +13,7 @@ class Player(Entity):
         # Always need for a Sprite!!
         self.image = pygame.image.load('graphics/test/player.png').convert_alpha()    # Will import player 
         self.rect = self.image.get_rect(topleft = pos)  # Position we get here will give to tile when create it
-        self.hitbox = self.rect.inflate(0,-26)
+        self.hitbox = self.rect.inflate(-6 , HITBOX_OFFSET['player'])   # Making it bit smaller makes movement simpler
         
         # Graphics setup
         self.import_player_assets()
@@ -52,10 +52,21 @@ class Player(Entity):
         
         # Stats 
         self.stats = {'health': 100, 'energy': 60, 'attack': 10, 'magic': 4, 'speed': 6}    # Base stats >> Use for creating the UI
+        self.max_stats = {'health': 300, 'energy': 140, 'attack': 20, 'magic': 10, 'speed': 10}    # Max stats a player can have
+        self.upgrade_cost = {'health': 100, 'energy': 100, 'attack': 100, 'magic': 100, 'speed': 100}    # How much the upgrade will cost
         self.health = self.stats['health']
         self.energy = self.stats['energy']
-        self.exp = 123
+        self.exp = 500
         self.speed = self.stats['speed']
+        
+        # Damage timer
+        self.vulnerable = True
+        self.hurt_time = None
+        self.invulnerability_duration = 500
+        
+        # Import sound
+        self.weapon_attack_sound = pygame.mixer.Sound('audio/sword.wav')
+        self.weapon_attack_sound.set_volume(0.4)
               
     def import_player_assets(self):
         # Path to folder containing all different animations
@@ -105,13 +116,18 @@ class Player(Entity):
                 self.attacking = True 
                 self.attack_time = pygame.time.get_ticks()  # This only called once
                 self.create_attack()    # Here can call the attack function
+                self.weapon_attack_sound.play()
                 
             # Magic input
             if keys_pressed[pygame.K_LCTRL]: # and not self.attacking:
-                style = list(magic_data.keys())[self.magic_index]   # Turn into a lsit so can index on it 
+                self.attacking = True 
+                self.attack_time = pygame.time.get_ticks()  # This only called once
+                
+                style = list(magic_data.keys())[self.magic_index]   # Turn into a list so can index on it 
                 strength = list(magic_data.values())[self.magic_index]["strength"]  # This returns a list of the dictionaries under the key values, can index it and specify the value to get
                 cost = list(magic_data.values())[self.magic_index]["cost"]
                 self.create_magic(style, strength, cost)     # Here want to call the magic funtion
+                
                 
             if keys_pressed[pygame.K_q] and self.can_switch_weapon:
                 self.can_switch_weapon = False  # Once the weapon switched set it ot false
@@ -173,8 +189,8 @@ class Player(Entity):
             # If the time of attack has passed more then 400 ticks then set to False so can attack again
             if current_time - self.attack_time >= self.attack_cooldown + weapon_cooldown:
                 self.attacking = False
-                self.destroy_attack()   # Want to destroy the sprite once the attack animation is done
-                
+                self.destroy_attack()   # Want to destroy the sprite once the attack animation is done     
+
         if not self.can_switch_weapon:  #If u can not switch the weapon 
             if current_time - self.weapon_switch_time >= self.switch_duration_cooldown: # Check current time - the time of weapon swithc and of bigger then can switch again
                 self.can_switch_weapon = True
@@ -182,6 +198,12 @@ class Player(Entity):
         if not self.can_switch_magic:  #If u can not switch the weapon 
             if current_time - self.magic_switch_time >= self.switch_duration_cooldown: # Check current time - the time of weapon swithc and of bigger then can switch again
                 self.can_switch_magic = True
+        
+        # This makes it so the health bar drops down
+        if not self.vulnerable:
+            if current_time - self.hurt_time >= self.invulnerability_duration:
+                self.vulnerable = True
+   
    
     def animate(self):
         # Use the status the get the correct key of images to represent
@@ -196,7 +218,17 @@ class Player(Entity):
         self.image = animation[int(self.frame_index)]
         # Different images of the player have different dimensions >> Need teo update the rectangle to have the correct pixels
         self.rect = self.image.get_rect(center = self.hitbox.center)
-    
+        
+        # Filcker
+        # Want to make it flicker once being hit
+        if not self.vulnerable:
+            # Want to flicker
+            alpha = self.wave_value()
+            
+            self.image.set_alpha(alpha)
+        else:
+            self.image.set_alpha(255)        
+        
     # Want to get the base attack + The damage of the current weapon it is using
     def get_full_weapon_damage(self):
         # Getting the base_damage
@@ -206,13 +238,35 @@ class Player(Entity):
         
         return base_damage + weapon_damage
     
+    def get_full_magic_damage(self):
+        
+        base_damage = self.stats['magic']
+        spell_damage = magic_data[self.magic]['strength']
+        
+        return base_damage + spell_damage
+        
+    def get_value_by_index(self, index):
+        # This will return the stats of the player 
+        return list(self.stats.values())[index]
+    
+        
+    def get_cost_by_index(self, index):  
+        return list(self.upgrade_cost.values())[index]
+    
+    def energy_recovery(self):
+        if self.energy <= self.stats['energy']:
+            self.energy += 0.01 * self.stats['magic']   # When levelling up the damage will do more damage and recover more energy faster
+        else:
+            self.energy = self.stats['energy']
+    
     def update(self):
         # Update the input keys each time
         self.input()
         self.cooldowns()
         self.get_status()
         self.animate()
-        self.move(self.speed) # Defined above
+        self.move(self.stats['speed']) # Defined above
+        self.energy_recovery()
         
         
 # Possible that 2 sprites collide either on the bottom of a sprite or on the left (side) of a sprite

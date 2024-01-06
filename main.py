@@ -20,6 +20,11 @@ class Game:
         # Creating instance from level class
         self.level = Level()
         
+        # Sound
+        main_sound = pygame.mixer.Sound('audio/main.ogg')
+        main_sound.set_volume(0.5)
+        main_sound.play(loops = -1)
+        
     # Run method
     def run(self):
         
@@ -30,7 +35,11 @@ class Game:
                     pygame.quit()
                     sys.exit()
                 
-            self.screen.fill('black')   # Filling screen with black color
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_m:
+                        self.level.toggle_menu()
+                
+            self.screen.fill(WATER_COLOR)   # Filling screen with black color
             self.level.run()            # Run everything from Level class inside the loop >> calling run() function
             pygame.display.update()     # Updating the screen
             self.clock.tick(FPS)        # Controlling the Framerate

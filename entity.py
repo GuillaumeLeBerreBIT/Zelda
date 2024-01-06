@@ -1,4 +1,5 @@
 import pygame
+from math import sin 
 
 class Entity(pygame.sprite.Sprite):
     
@@ -50,3 +51,13 @@ class Entity(pygame.sprite.Sprite):
                         self.hitbox.top = sprite.hitbox.bottom  # Will place the top of the player under the bottom of the sprite
                     if self.direction.y > 0: # Moving down
                         self.hitbox.bottom = sprite.hitbox.top # Will place the bottom of the player at the top of the obstacle sprite
+                        
+    def wave_value(self):
+        # Using the sinus fuinction will get a wave frequency, If the point of frequency is above zero return value 255 if it is below 0 aka neg return 0
+        value = sin(pygame.time.get_ticks())
+        
+        if value >= 0:
+            return 255
+        else: 
+            return 0
+        

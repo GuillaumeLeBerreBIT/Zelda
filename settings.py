@@ -3,6 +3,13 @@ WIDTH = 1280        # Game window variables
 HEIGTH = 720        # ^^^==
 FPS = 60            # Framerate Per Seconds 
 TILESIZE = 64       # Tilesize
+HITBOX_OFFSET = {
+    'player': -26,
+    'object': -40,
+    'grass': -10,
+    'invinsible': 0
+}
+
 
 # UI
 BAR_HEIGHT = 20
@@ -22,6 +29,12 @@ TEXT_COLOR = '#EEEEEE'
 HEALTH_COLOR = 'red'
 ENERGY_COLOR = 'blue'
 UI_BORDER_COLOR_ACTIVE = 'gold'
+
+# Upgrade menu
+TEXT_COLOR_SELECTED = '#111111'
+BAR_COLOR = '#EEEEEE'
+BAR_COLOR_SELECTED = '#111111'
+UPGRADE_BG_COLOR_SELECTED = '#EEEEEE'
 
 # Weapon data
 weapon_data = {
